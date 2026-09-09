@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMS FA Quality Inspection</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
+    .loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: #3b82f6; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+    .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.875rem; text-align: center; display: inline-block; min-width: 90px; }
+    .status-pending { background-color: #fef08a; color: #854d0e; }
+    .status-ok { background-color: #bbf7d0; color: #166534; }
+    .status-ng { background-color: #fecaca; color: #991b1b; }
+    
+    /* Custom Scrollbar for table */
+    .table-container::-webkit-scrollbar { height: 8px; width: 8px;}
+    .table-container::-webkit-scrollbar-track { background: #f1f1f1; }
+    .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="text-gray-800">
+
+  <!-- Loader -->
+  <div id="loader" class="loader-overlay hidden">
+    <div class="spinner mb-4"></div>
+    <p class="text-gray-600 font-semibold" id="loader-text">Loading...</p>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="bg-white shadow-md w-full sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center cursor-pointer" onclick="navigate('home')">
+          <img src="https://www.alliedmfg.co.th/wp-content/uploads/2023/07/AMS-LOGO-V1.png" alt="AMS Logo" class="h-10 w-auto" onerror="this.src='https://via.placeholder.com/100x40?text=AMS+LOGO'">
+          <span class="ml-4 font-bold text-xl text-blue-900 hidden sm:block">FA Quality Inspection System</span>
+        </div>
+        <div class="flex items-center">
+          <button id="nav-dashboard-btn" onclick="openDashboard()" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md font-medium">
+            <i class="fas fa-chart-line mr-1"></i> Dashboard
+          </button>
+          <button id="nav-login-btn" onclick="navigate('login')" class="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors">
+            Admin Login
+          </button>
+          <button id="nav-logout-btn" onclick="logout()" class="hidden ml-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors">
+            Logout Admin
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- View: HOME (Topic Selection) -->
+    <div id="view-home" class="view-section">
+      <div class="text-center mb-10">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">เลือกหัวข้อการตรวจสอบ / Select Inspection Topic</h1>
+        <p class="text-gray-500">กรุณาเลือกหัวข้อที่ต้องการส่งงานตรวจสอบคุณภาพ</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Card 1 -->
+        <div onclick="openForm('DIECUT_INSPECTION')" class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow p-6 cursor-pointer border border-gray-100 flex flex-col items-center text-center group">
+          <div class="h-16 w-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <i class="fas fa-cut"></i>
+          </div>
+          <h3 class="font-bold text-lg text-gray-800">DIECUT INSPECTION</h3>
+        </div>
+        <!-- Card 2 -->
+        <div onclick="openForm('JIG_FA')" class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow p-6 cursor-pointer border border-gray-100 flex flex-col items-center text-center group">
+          <div class="h-16 w-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-2xl mb-4 group-hover:bg-green-600 group-hover:text-white transition-colors">
+            <i class="fas fa-tools"></i>
+          </div>
+          <h3 class="font-bold text-lg text-gray-800">JIG FA</h3>
+        </div>
+        <!-- Card 3 -->
+        <div onclick="openForm('FIRST_SHOT_FA')" class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow p-6 cursor-pointer border border-gray-100 flex flex-col items-center text-center group">
+          <div class="h-16 w-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-2xl mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+            <i class="fas fa-camera"></i>
+          </div>
+          <h3 class="font-bold text-lg text-gray-800">FIRST SHOT FA</h3>
+        </div>
+        <!-- Card 4 -->
+        <div onclick="openForm('FA_FG')" class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow p-6 cursor-pointer border border-gray-100 flex flex-col items-center text-center group">
+          <div class="h-16 w-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-2xl mb-4 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+            <i class="fas fa-box-open"></i>
+          </div>
+          <h3 class="font-bold text-lg text-gray-800">FA FG</h3>
+        </div>
+      </div>
+    </div>
+
+    <!-- View: DYNAMIC FORM -->
+    <div id="view-form" class="view-section hidden max-w-3xl mx-auto">
+      <div class="mb-4">
+        <button onclick="navigate('home')" class="text-gray-500 hover:text-blue-600"><i class="fas fa-arrow-left mr-2"></i> กลับหน้าแรก</button>
+      </div>
+      <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+        <div class="bg-blue-900 text-white px-6 py-4">
+          <h2 id="form-title" class="text-xl font-bold">Form Title</h2>
+        </div>
+        <form id="submission-form" class="p-6 space-y-6" onsubmit="submitForm(event)">
+          <input type="hidden" id="form-topic" name="topic">
+          <div id="form-fields-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Dynamic Fields Render Here -->
+          </div>
+          <div class="border-t pt-4 flex justify-end">
+            <button type="button" onclick="navigate('home')" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-md mr-3 hover:bg-gray-300">ยกเลิก</button>
+            <button type="submit" class="bg-blue-600 text-white px-8 py-2 rounded-md hover:bg-blue-700 font-semibold shadow-sm">ส่งงาน</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- View: ADMIN LOGIN -->
+    <div id="view-login" class="view-section hidden max-w-md mx-auto mt-10">
+      <div class="bg-white shadow-md rounded-lg p-8 border border-gray-200">
+        <div class="text-center mb-6">
+          <div class="inline-block bg-blue-100 p-3 rounded-full mb-3 text-blue-600"><i class="fas fa-user-shield text-3xl"></i></div>
+          <h2 class="text-2xl font-bold text-gray-900">Admin QA Login</h2>
+        </div>
+        <form onsubmit="handleLogin(event)" class="space-y-5">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <input type="text" id="login-user" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input type="password" id="login-pass" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <p id="login-error" class="text-red-500 text-sm hidden">Invalid Username or Password.</p>
+          <button type="submit" class="w-full bg-blue-900 text-white py-2 rounded-md hover:bg-blue-800 font-semibold transition-colors">Login</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- View: DASHBOARD (Unified for User & Admin) -->
+    <div id="view-dashboard" class="view-section hidden">
+      <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+        <h2 id="dashboard-title" class="text-2xl font-bold text-gray-800">User Dashboard</h2>
+        <span id="dashboard-subtitle" class="text-gray-500 text-sm mt-2 md:mt-0">ดูสถานะงานที่ส่งตรวจสอบ (อ่านอย่างเดียว)</span>
+      </div>
+
+      <!-- KPIs -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
+          <p class="text-gray-500 text-sm font-medium">งานทั้งหมด (Total)</p>
+          <p id="kpi-total" class="text-2xl font-bold text-gray-800">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-yellow-400">
+          <p class="text-gray-500 text-sm font-medium">รอตรวจสอบ (Pending)</p>
+          <p id="kpi-pending" class="text-2xl font-bold text-gray-800">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500">
+          <p class="text-gray-500 text-sm font-medium">ผ่าน (OK)</p>
+          <p id="kpi-ok" class="text-2xl font-bold text-gray-800">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500">
+          <p class="text-gray-500 text-sm font-medium">ไม่ผ่าน (NG)</p>
+          <p id="kpi-ng" class="text-2xl font-bold text-gray-800">0</p>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="bg-white p-4 rounded-lg shadow-sm mb-6 border border-gray-200">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">หัวข้อ (Topic)</label>
+            <select id="filter-topic" class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-1.5 px-2 border" onchange="applyFilters()">
+              <option value="">ทั้งหมด (All)</option>
+              <option value="DIECUT INSPECTION">DIECUT INSPECTION</option>
+              <option value="JIG FA">JIG FA</option>
+              <option value="FIRST SHOT FA">FIRST SHOT FA</option>
+              <option value="FA FG">FA FG</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">สถานะ (Status)</label>
+            <select id="filter-status" class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-1.5 px-2 border" onchange="applyFilters()">
+              <option value="">ทั้งหมด (All)</option>
+              <option value="PENDING">PENDING (รอตรวจ)</option>
+              <option value="OK">OK (ผ่าน)</option>
+              <option value="NG">NG (ไม่ผ่าน)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">ตั้งแต่วันที่ (Start Date)</label>
+            <input type="date" id="filter-date-start" class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-1.5 px-2 border" onchange="applyFilters()">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">ถึงวันที่ (End Date)</label>
+            <input type="date" id="filter-date-end" class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-1.5 px-2 border" onchange="applyFilters()">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">ค้นหา (Search)</label>
+            <input type="text" id="filter-search" placeholder="FA NO, Part No, Customer..." class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-1.5 px-2 border" oninput="applyFilters()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+        <div class="table-container overflow-x-auto w-full">
+          <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Date/Time (ส่ง)</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">หัวข้อ</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Record / Ref No</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Customer</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Part No</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">ผู้ส่ง</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Date/Time (ตรวจ)</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">ผู้ตรวจ</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Remark</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-tbody" class="bg-white divide-y divide-gray-200">
+              <!-- Rows Render Here -->
+            </tbody>
+          </table>
+        </div>
+        <div id="table-empty" class="hidden text-center py-8 text-gray-500">
+          ไม่พบข้อมูล / No Data Found
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Admin Inspection Modal -->
+  <div id="modal-inspect" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden my-8">
+      <div class="bg-blue-900 px-6 py-4 flex justify-between items-center text-white">
+        <h3 class="text-lg font-bold">บันทึกผลการตรวจสอบ (Inspection Result)</h3>
+        <button onclick="closeModal('modal-inspect')" class="text-gray-300 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+      
+      <div class="p-6">
+        <!-- Job Details (Readonly) -->
+        <div class="bg-gray-50 p-4 rounded-md border border-gray-200 mb-6 text-sm">
+          <div class="grid grid-cols-2 gap-y-2 gap-x-4 mb-2">
+            <div><span class="text-gray-500">Record ID:</span> <span id="mdl-record" class="font-semibold text-gray-800"></span></div>
+            <div><span class="text-gray-500">หัวข้อ:</span> <span id="mdl-topic" class="font-semibold text-gray-800"></span></div>
+            <div><span class="text-gray-500">วันที่ส่ง:</span> <span id="mdl-submitdate" class="text-gray-800"></span></div>
+            <div><span class="text-gray-500">Ref No:</span> <span id="mdl-refno" class="text-gray-800"></span></div>
+            <div><span class="text-gray-500">Customer:</span> <span id="mdl-customer" class="text-gray-800"></span></div>
+            <div><span class="text-gray-500">Part No:</span> <span id="mdl-partno" class="text-gray-800"></span></div>
+          </div>
+          <!-- Area for extra specific details based on topic -->
+          <div class="mt-3 pt-3 border-t border-gray-200">
+            <p class="font-medium text-gray-700 mb-1">ข้อมูลเพิ่มเติม:</p>
+            <div id="mdl-extra-details" class="grid grid-cols-2 gap-2 text-xs"></div>
+          </div>
+        </div>
+
+        <!-- Inspection Form -->
+        <form id="inspect-form" onsubmit="submitInspection(event)">
+          <input type="hidden" id="ins-record-id">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">ผลการตรวจสอบ (Result) <span class="text-red-500">*</span></label>
+              <div class="flex space-x-4 mt-2">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="radio" name="ins-result" value="OK" required class="form-radio h-5 w-5 text-green-600 focus:ring-green-500 border-gray-300">
+                  <span class="ml-2 text-gray-700 font-medium">ผ่าน (OK)</span>
+                </label>
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="radio" name="ins-result" value="NG" required class="form-radio h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300">
+                  <span class="ml-2 text-gray-700 font-medium">ไม่ผ่าน (NG)</span>
+                </label>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">ผู้ตรวจสอบ (Inspector) <span class="text-red-500">*</span></label>
+              <input type="text" id="ins-inspector" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ (Remark) <span class="text-xs text-gray-500 font-normal">(บังคับกรอกกรณี NG)</span></label>
+              <textarea id="ins-remark" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="ระบุเหตุผลหากไม่ผ่าน..."></textarea>
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end">
+            <button type="button" onclick="closeModal('modal-inspect')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md mr-3 hover:bg-gray-300 text-sm font-medium">ยกเลิก</button>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 text-sm font-bold shadow-sm">บันทึกผล</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert Modal -->
+  <div id="modal-alert" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden p-6 text-center">
+      <div id="alert-icon" class="text-4xl mb-4"></div>
+      <h3 id="alert-title" class="text-lg font-bold text-gray-900 mb-2">Message</h3>
+      <p id="alert-msg" class="text-gray-600 text-sm mb-6">Description goes here.</p>
+      <button onclick="closeModal('modal-alert')" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-medium">ตกลง / OK</button>
+    </div>
+  </div>
+
+  <script>
+    // --- STATE MANAGEMENT ---
+    let isAdmin = false;
+    let currentData = [];
+    let filteredData = [];
+
+    // --- FORM SCHEMAS ---
+    const formSchemas = {
+      'DIECUT_INSPECTION': {
+        title: 'DIECUT INSPECTION',
+        fields: [
+          { id: 'diecutNo', label: 'DIECUT NO', type: 'text', req: true, upper: true },
+          { id: 'refDiecut', label: 'REFER NO DIECUT', type: 'text', req: true },
+          { id: 'customer', label: 'CUSTOMER', type: 'text', req: true },
+          { id: 'partNo', label: 'PART NO', type: 'text', req: true, upper: true },
+          { id: 'rev', label: 'REV', type: 'text', req: true, numOnly: true },
+          { id: 'cavity', label: 'CAVITY', type: 'text', req: true, numOnly: true },
+          { id: 'submitter', label: 'ผู้ส่ง MOULD', type: 'text', req: true }
+        ]
+      },
+      'JIG_FA': {
+        title: 'JIG FA',
+        fields: [
+          { id: 'customer', label: 'CUSTOMER', type: 'text', req: true },
+          { id: 'partNo', label: 'PART NO', type: 'text', req: true, upper: true },
+          { id: 'rev', label: 'REV', type: 'text', req: true, numOnly: true },
+          { id: 'jigType', label: 'JIG TYPE', type: 'select', req: true, options: ['วัด Dimension', 'ติดกาว', 'อื่นๆ'] },
+          { id: 'jigOther', label: 'รายละเอียด JIG (กรณีอื่นๆ)', type: 'text', req: false, hidden: true },
+          { id: 'qty', label: 'จำนวน JIG', type: 'text', req: true, numOnly: true },
+          { id: 'submitter', label: 'ผู้ส่ง JIG', type: 'text', req: true }
+        ]
+      },
+      'FIRST_SHOT_FA': {
+        title: 'FIRST SHOT FA',
+        fields: [
+          { id: 'faNo', label: 'FA NO.', type: 'text', req: true, faFormat: true },
+          { id: 'customer', label: 'CUSTOMER', type: 'text', req: true },
+          { id: 'partNo', label: 'PART NO', type: 'text', req: true, upper: true },
+          { id: 'rev', label: 'REV', type: 'text', req: true, numOnly: true },
+          { id: 'toolingReq', label: 'TOOLING REQUIRE', type: 'checkboxes', req: true, options: ['TOOLING', 'LASER', 'CDC', 'V-CUT'], colSpan: 2 },
+          { id: 'machine', label: 'เครื่องผลิต', type: 'text', req: true },
+          { id: 'pack', label: 'PACK', type: 'text', req: true },
+          { id: 'qtyMain', label: 'จำนวนหลัก', type: 'text', req: true, numOnly: true },
+          { id: 'qtyAdd', label: 'จำนวนเพิ่มเติม', type: 'text', req: false, numOnly: true },
+          { id: 'submitter', label: 'ผู้ส่งงาน', type: 'text', req: true }
+        ]
+      },
+      'FA_FG': {
+        title: 'FA FG',
+        fields: [
+          { id: 'faNo', label: 'FA NO.', type: 'text', req: true, faFormat: true },
+          { id: 'customer', label: 'CUSTOMER', type: 'text', req: true },
+          { id: 'partNo', label: 'PART NO', type: 'text', req: true, upper: true },
+          { id: 'rev', label: 'REV', type: 'text', req: true, numOnly: true },
+          { id: 'qtyMain', label: 'จำนวนหลัก', type: 'text', req: true, numOnly: true },
+          { id: 'qtyAdd', label: 'จำนวนเพิ่มเติม', type: 'text', req: false, numOnly: true },
+          { id: 'submitter', label: 'ผู้ส่งงาน', type: 'text', req: true }
+        ]
+      }
+    };
+
+    // --- NAVIGATION & UI CONTROL ---
+    function navigate(viewId) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+      document.getElementById('view-' + viewId).classList.remove('hidden');
+    }
+
+    function showLoader(text = 'Loading...') {
+      document.getElementById('loader-text').innerText = text;
+      document.getElementById('loader').classList.remove('hidden');
+    }
+
+    function hideLoader() {
+      document.getElementById('loader').classList.add('hidden');
+    }
+
+    function showAlert(title, msg, type = 'info') {
+      const icon = document.getElementById('alert-icon');
+      if(type === 'success') { icon.innerHTML = '<i class="fas fa-check-circle text-green-500"></i>'; }
+      else if(type === 'error') { icon.innerHTML = '<i class="fas fa-times-circle text-red-500"></i>'; }
+      else { icon.innerHTML = '<i class="fas fa-info-circle text-blue-500"></i>'; }
+      
+      document.getElementById('alert-title').innerText = title;
+      document.getElementById('alert-msg').innerText = msg;
+      document.getElementById('modal-alert').classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    // --- FORM RENDERING ---
+    function openForm(topicKey) {
+      const schema = formSchemas[topicKey];
+      document.getElementById('form-title').innerText = schema.title;
+      document.getElementById('form-topic').value = topicKey;
+      
+      const container = document.getElementById('form-fields-container');
+      container.innerHTML = ''; // clear
+
+      schema.fields.forEach(f => {
+        const wrapper = document.createElement('div');
+        if (f.colSpan === 2) wrapper.className = 'md:col-span-2';
+        if (f.hidden) wrapper.id = `wrapper-${f.id}`;
+        if (f.hidden) wrapper.classList.add('hidden');
+
+        let html = `<label class="block text-sm font-medium text-gray-700 mb-1">${f.label} ${f.req ? '<span class="text-red-500">*</span>' : ''}</label>`;
+        
+        // Validation Events string builder
+        let evtStr = ``;
+        if (f.upper) evtStr += `this.value = this.value.toUpperCase();`;
+        if (f.numOnly) evtStr += `this.value = this.value.replace(/[^0-9]/g, '');`;
+        if (f.faFormat) evtStr += `this.value = this.value.replace(/[^0-9\\/]/g, '');`;
+
+        if (f.type === 'text') {
+          html += `<input type="text" id="${f.id}" name="${f.id}" ${f.req ? 'required' : ''} oninput="${evtStr}" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">`;
+        } else if (f.type === 'select') {
+          html += `<select id="${f.id}" name="${f.id}" ${f.req ? 'required' : ''} onchange="handleSelectChange('${f.id}', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <option value="">-- เลือก --</option>`;
+          f.options.forEach(opt => html += `<option value="${opt}">${opt}</option>`);
+          html += `</select>`;
+        } else if (f.type === 'checkboxes') {
+          html += `<div class="flex flex-wrap gap-4 mt-2">`;
+          f.options.forEach(opt => {
+            html += `<label class="inline-flex items-center">
+              <input type="checkbox" name="${f.id}" value="${opt}" class="form-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded">
+              <span class="ml-2 text-sm text-gray-700">${opt}</span>
+            </label>`;
+          });
+          html += `</div>`;
+        }
+        
+        wrapper.innerHTML = html;
+        container.appendChild(wrapper);
+      });
+
+      navigate('form');
+    }
+
+    function handleSelectChange(fieldId, val) {
+      if(fieldId === 'jigType') {
+        const wrap = document.getElementById('wrapper-jigOther');
+        const input = document.getElementById('jigOther');
+        if(val === 'อื่นๆ') {
+          wrap.classList.remove('hidden');
+          input.setAttribute('required', 'true');
+        } else {
+          wrap.classList.add('hidden');
+          input.removeAttribute('required');
+          input.value = '';
+        }
+      }
+    }
+
+    // --- FORM SUBMISSION ---
+    function submitForm(e) {
+      e.preventDefault();
+      const topic = document.getElementById('form-topic').value;
+      const schema = formSchemas[topic];
+      const dataObj = {};
+
+      // Gather Data
+      let cbValues = [];
+      schema.fields.forEach(f => {
+        if(f.type === 'checkboxes') {
+          const boxes = document.querySelectorAll(`input[name="${f.id}"]:checked`);
+          boxes.forEach(b => cbValues.push(b.value));
+          dataObj[f.id] = cbValues.join(', ');
+        } else {
+          dataObj[f.id] = document.getElementById(f.id).value.trim();
+        }
+      });
+
+      // Special check for checkboxes
+      if(topic === 'FIRST_SHOT_FA' && cbValues.length === 0) {
+        showAlert('ข้อผิดพลาด', 'กรุณาเลือก TOOLING REQUIRE อย่างน้อย 1 รายการ', 'error');
+        return;
+      }
+
+      showLoader('กำลังบันทึกข้อมูล / Saving...');
+      google.script.run.withSuccessHandler(resStr => {
+        hideLoader();
+        const res = JSON.parse(resStr);
+        if(res.success) {
+          showAlert('สำเร็จ / Success', `บันทึกงานเรียบร้อยแล้ว\nRecord ID: ${res.recordId}`, 'success');
+          document.getElementById('submission-form').reset();
+          navigate('home');
+        } else {
+          showAlert('เกิดข้อผิดพลาด', res.message, 'error');
+        }
+      }).withFailureHandler(err => {
+        hideLoader();
+        showAlert('Server Error', err.message, 'error');
+      }).submitNewJob(topic, dataObj);
+    }
+
+    // --- DASHBOARD LOGIC ---
+    function openDashboard() {
+      navigate('dashboard');
+      document.getElementById('dashboard-title').innerText = isAdmin ? 'Admin Dashboard (QA)' : 'User Dashboard';
+      document.getElementById('dashboard-subtitle').innerText = isAdmin ? 'คลิกที่แถวงานเพื่อบันทึกผลการตรวจสอบ' : 'ดูสถานะงานที่ส่งตรวจสอบ (อ่านอย่างเดียว / Read-only)';
+      loadDashboardData();
+    }
+
+    function loadDashboardData() {
+      showLoader('กำลังดึงข้อมูล / Loading Data...');
+      google.script.run.withSuccessHandler(resStr => {
+        hideLoader();
+        currentData = JSON.parse(resStr);
+        applyFilters();
+      }).withFailureHandler(err => {
+        hideLoader();
+        showAlert('Error', 'ไม่สามารถโหลดข้อมูลได้', 'error');
+      }).getDashboardData();
+    }
+
+    function applyFilters() {
+      const fTopic = document.getElementById('filter-topic').value;
+      const fStatus = document.getElementById('filter-status').value;
+      const fStart = document.getElementById('filter-date-start').value;
+      const fEnd = document.getElementById('filter-date-end').value;
+      const fSearch = document.getElementById('filter-search').value.toLowerCase();
+
+      filteredData = currentData.filter(row => {
+        let match = true;
+        if(fTopic && row.topic !== fTopic) match = false;
+        if(fStatus && row.status !== fStatus) match = false;
+        
+        if(fStart && row.submitDate < fStart) match = false;
+        if(fEnd && row.submitDate > fEnd) match = false;
+        
+        if(fSearch) {
+          const sText = `${row.refNo} ${row.customer} ${row.partNo} ${row.recordId}`.toLowerCase();
+          if(!sText.includes(fSearch)) match = false;
+        }
+        return match;
+      });
+
+      renderTable();
+      renderKPIs();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('dashboard-tbody');
+      const emptyDiv = document.getElementById('table-empty');
+      tbody.innerHTML = '';
+
+      if(filteredData.length === 0) {
+        emptyDiv.classList.remove('hidden');
+      } else {
+        emptyDiv.classList.add('hidden');
+        filteredData.forEach((row, idx) => {
+          const tr = document.createElement('tr');
+          
+          // CSS for interaction depending on role
+          if(isAdmin) {
+            tr.className = 'hover:bg-blue-50 cursor-pointer transition-colors';
+            tr.onclick = () => openInspectionModal(idx);
+          } else {
+            tr.className = 'hover:bg-gray-50'; // Just slight hover for visibility, no cursor pointer
+          }
+
+          let badgeClass = 'status-pending';
+          if(row.status === 'OK') badgeClass = 'status-ok';
+          if(row.status === 'NG') badgeClass = 'status-ng';
+
+          tr.innerHTML = `
+            <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500">${row.submitDate}<br>${row.submitTime}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-900">${row.topic}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-xs text-blue-600 font-semibold">${row.recordId}<br><span class="text-gray-500 font-normal">${row.refNo !== '-' ? row.refNo : ''}</span></td>
+            <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-700">${row.customer}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-700">${row.partNo}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500">${row.submitter}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-center"><span class="status-badge ${badgeClass}">${row.status}</span></td>
+            <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500">${row.inspectDate ? row.inspectDate+'<br>'+row.inspectTime : '-'}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-700">${row.inspector || '-'}</td>
+            <td class="px-4 py-3 text-xs text-gray-500 max-w-xs truncate" title="${row.remark || ''}">${row.remark || '-'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    function renderKPIs() {
+      let total = filteredData.length;
+      let pending = 0, ok = 0, ng = 0;
+      filteredData.forEach(r => {
+        if(r.status === 'PENDING') pending++;
+        else if(r.status === 'OK') ok++;
+        else if(r.status === 'NG') ng++;
+      });
+      document.getElementById('kpi-total').innerText = total;
+      document.getElementById('kpi-pending').innerText = pending;
+      document.getElementById('kpi-ok').innerText = ok;
+      document.getElementById('kpi-ng').innerText = ng;
+    }
+
+    // --- ADMIN ACTIONS ---
+    function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('login-user').value;
+      const p = document.getElementById('login-pass').value;
+      
+      showLoader('Authenticating...');
+      google.script.run.withSuccessHandler(resStr => {
+        hideLoader();
+        const res = JSON.parse(resStr);
+        if(res.success) {
+          isAdmin = true;
+          document.getElementById('nav-login-btn').classList.add('hidden');
+          document.getElementById('nav-logout-btn').classList.remove('hidden');
+          document.getElementById('login-error').classList.add('hidden');
+          document.getElementById('login-user').value = '';
+          document.getElementById('login-pass').value = '';
+          openDashboard();
+        } else {
+          document.getElementById('login-error').classList.remove('hidden');
+        }
+      }).verifyAdmin(u, p);
+    }
+
+    function logout() {
+      isAdmin = false;
+      document.getElementById('nav-login-btn').classList.remove('hidden');
+      document.getElementById('nav-logout-btn').classList.add('hidden');
+      navigate('home');
+    }
+
+    function openInspectionModal(filteredIdx) {
+      if(!isAdmin) return;
+      const row = filteredData[filteredIdx];
+      
+      document.getElementById('mdl-record').innerText = row.recordId;
+      document.getElementById('mdl-topic').innerText = row.topic;
+      document.getElementById('mdl-submitdate').innerText = row.submitDate + ' ' + row.submitTime;
+      document.getElementById('mdl-refno').innerText = row.refNo;
+      document.getElementById('mdl-customer').innerText = row.customer;
+      document.getElementById('mdl-partno').innerText = row.partNo;
+      
+      document.getElementById('ins-record-id').value = row.recordId;
+      document.getElementById('ins-inspector').value = row.inspector || '';
+      document.getElementById('ins-remark').value = row.remark || '';
+      
+      // Setup extra details
+      const exDiv = document.getElementById('mdl-extra-details');
+      let exHtml = '';
+      for (const [key, val] of Object.entries(row.rawData)) {
+        if(val) exHtml += `<div><span class="text-gray-500 capitalize">${key.replace(/([A-Z])/g, ' $1').trim()}:</span> <span class="text-gray-800">${val}</span></div>`;
+      }
+      exDiv.innerHTML = exHtml;
+
+      // Set radio
+      const radios = document.getElementsByName('ins-result');
+      radios[0].checked = false; radios[1].checked = false;
+      if(row.result === 'OK') radios[0].checked = true;
+      if(row.result === 'NG') radios[1].checked = true;
+
+      document.getElementById('modal-inspect').classList.remove('hidden');
+    }
+
+    function submitInspection(e) {
+      e.preventDefault();
+      const recordId = document.getElementById('ins-record-id').value;
+      const result = document.querySelector('input[name="ins-result"]:checked').value;
+      const inspector = document.getElementById('ins-inspector').value.trim();
+      const remark = document.getElementById('ins-remark').value.trim();
+
+      if(result === 'NG' && remark === '') {
+        showAlert('แจ้งเตือน', 'กรุณาระบุหมายเหตุ (Remark) เนื่องจากผลการตรวจคือ NG (ไม่ผ่าน)', 'error');
+        return;
+      }
+
+      const payload = { recordId, result, inspector, remark };
+      
+      showLoader('กำลังบันทึกผลการตรวจ...');
+      google.script.run.withSuccessHandler(resStr => {
+        const res = JSON.parse(resStr);
+        if(res.success) {
+          closeModal('modal-inspect');
+          loadDashboardData(); // Reload to reflect changes
+        } else {
+          hideLoader();
+          showAlert('Error', res.message, 'error');
+        }
+      }).withFailureHandler(err => {
+        hideLoader();
+        showAlert('Server Error', err.message, 'error');
+      }).updateInspection(payload);
+    }
+  </script>
+</body>
+</html>
